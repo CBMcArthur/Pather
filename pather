@@ -1,0 +1,157 @@
+#!/usr/bin/php
+<?php
+
+// Process the input file.
+$layout = array();
+$hashes = array();
+read_input_file($argv[1]);
+
+// Checkpoint: Debug output to verify all is well with the world (or at least this part of the script)
+//print_r($layout);
+//print_r($hashes);
+
+// Draw paths.
+draw_paths();
+
+// Write to the output file.
+write_output_file($argv[2]);
+
+// All done.  Yay me!
+exit;
+
+/**
+ *  Function: draw_paths()
+ * 
+ *  This function does the heavy lifting.  It iterates through the list of hashes
+ *  and draws paths between each using splat marks.
+ **/
+function draw_paths() {
+   global $layout, $hashes; 
+
+   // Iterate through the hashes.  Watch the one-off.
+   for ($hash_num = 0; $hash_num < count($hashes)-1; $hash_num++) {
+      $this_hash = $hashes[$hash_num];
+      $next_hash = $hashes[$hash_num+1];
+
+      // If hashes are on the same line, splat the spots in between.
+      if ($this_hash[0] == $next_hash[0]) {
+         horizontal_splat($this_hash[1]+1, $next_hash[1], $this_hash[0]);
+      }
+      // If hashes are in the same column, splat the spots in between.
+      else if ($this_hash[1] == $next_hash[1]) {
+      	 vertical_splat($this_hash[0]+1, $next_hash[0], $this_hash[1]);
+      }
+      // If hashes are in different line & column.
+      else {
+         // First splat the spots vertically.
+	 vertical_splat($this_hash[0]+1, $next_hash[0]+1, $this_hash[1]);
+
+         // Now splat the spots horizontally.
+	 // If this has is to the left of the next hash
+	 if ($this_hash[1] < $next_hash[1]) {
+	    // then splat left to right.
+	    horizontal_splat($this_hash[1]+1, $next_hash[1], $next_hash[0]);
+	 } else {
+	    // else splat right to left.
+	    horizontal_splat($next_hash[1]+1, $this_hash[1], $next_hash[0]);
+	 }
+      }
+   }
+}
+
+/**
+ *  Function: vertical_splat
+ *  Arguments: $from - The row to start adding splats
+ *  	       $to   - The row to end adding splats
+ * 	       $col  - The column to put the splats in
+ *  
+ *  This function modifies the layout to put splats down a column.
+ **/
+function vertical_splat($from, $to, $col) {
+   global $layout;
+
+   for ($spot = $from; $spot < $to; $spot++) {
+       $layout[$spot][$col] = '*';
+   }
+}
+
+/**
+ *  Function: horizontal_splat
+ *  Arguments: $from - The column to start adding splats
+ *  	       $to   - The row to end adding splats
+ * 	       $row  - The row to put the splats in
+ *  
+ *  This function modifies the layout to put splats down a column.
+ **/
+function horizontal_splat($from, $to, $row) {
+   global $layout;
+
+   for ($spot = $from; $spot < $to; $spot++) {
+      $layout[$row][$spot] = '*';
+   }
+}
+
+/**
+ *  Function: read_input_file
+ *  Arguments: $input_file - The name of the input file.
+ *  
+ *  This function opens the specified input file and adds its contents into the 
+ *  global layout array.  It will also compile a list of hash marks in the layout.
+ **/
+function read_input_file($input_file) {
+   global $layout, $hashes;
+
+   // Open the file
+   @$fp = fopen($input_file, "r");
+   if ($fp) {
+      $line_count = 0;
+
+      // As long as there is another line to read, process it.
+      while (($line = fgets($fp)) !== false) {
+         $layout[$line_count] = str_split($line);
+
+	 // While I've got easy access to this line, find any hashes in it.
+	 foreach ($layout[$line_count] as $key => $char) {
+	    if ($char == '#') {
+	       $hashes[] = array($line_count, $key);
+	    }
+	 }
+	 $line_count++;
+      }  // End while
+   } else {
+      // Something went wrong.  Error time.
+      error_log("Unable to open the input file!");
+   }  // End if($fp)
+   
+   // Don't forget to close the file.
+   fclose($fp);
+}
+
+/**
+ * Function: write_output_file
+ * Arguments: $output_file - This is the output file
+ * 
+ * This file puts the layout into the specfied output file.
+ **/
+function write_output_file($output_file) {
+   global $layout;
+
+   // Open/Create the output file.
+   @$fp = fopen($output_file, "w");
+   if ($fp) {
+      foreach($layout as $line_count => $char_array) {
+         if (!fwrite($fp, implode("", $char_array))) {
+	    // Could not write to an opened file. Hrmmm.... Error time.
+	    error_log("Unable to write to the output file.");
+	 }
+      }
+   } else {
+      // Something went wrong opening the output file.  Error time.
+      error_log("Unable to open the output file!");
+   }
+
+   // Don't forget to close the file.
+   fclose($fp);
+}
+
+?>
